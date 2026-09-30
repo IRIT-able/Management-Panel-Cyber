@@ -59,6 +59,7 @@ class ProxmoxClient:
         with _ssh_pool_lock:
             # Check if we have a reusable connection
             if key in _ssh_connections:
+                ssh = _ssh_connections[key]
                 # Verify it's still alive with paramiko built-in checking
                 try:
                     transport = ssh.get_transport()
