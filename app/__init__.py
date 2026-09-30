@@ -22,6 +22,33 @@ def create_app(config_object='config.DevelopmentConfig'):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    
+    from .extensions import scheduler
+    
+    # Initialize APScheduler
+    app.config['SCHEDULER_API_ENABLED'] = False
+    scheduler.init_app(app)
+    
+    # Simple file lock to prevent multiple workers from running the scheduler
+    try:
+        import fcntl
+        lock_file = open("/tmp/scheduler.lock", "w")
+        fcntl.lockf(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        scheduler.start()
+        
+        # Schedule the cron job for off-hours shutdown (e.g. 5 PM)
+        from .tasks import scheduled_shutdown_all_vms
+        scheduler.add_job(
+            id='scheduled_shutdown_all_vms',
+            func=scheduled_shutdown_all_vms,
+            args=[app.app_context()],
+            trigger='cron',
+            hour=17,
+            minute=0
+        )
+    except BlockingIOError:
+        # Another worker has the lock
+        pass
     # Initialize security-focused extensions
     talisman.init_app(
         app,

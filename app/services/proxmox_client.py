@@ -4,8 +4,8 @@ import paramiko
 import json
 import threading
 import time
+import requests
 from typing import Dict, List
-
 
 # Global SSH connection pool to avoid resource exhaustion
 _ssh_pool_lock = threading.Lock()
@@ -59,17 +59,14 @@ class ProxmoxClient:
         with _ssh_pool_lock:
             # Check if we have a reusable connection
             if key in _ssh_connections:
-                ssh = _ssh_connections[key]
-                # Verify it's still alive with gevent timeout
+                # Verify it's still alive with paramiko built-in checking
                 try:
-                    import gevent
-                    with gevent.Timeout(2):
-                        transport = ssh.get_transport()
-                        if transport and transport.is_active():
-                            return ssh
-                        else:
-                            raise Exception("Transport inactive")
-                except:
+                    transport = ssh.get_transport()
+                    if transport and transport.is_active():
+                        return ssh
+                    else:
+                        raise Exception("Transport inactive")
+                except Exception:
                     # Connection dead, remove it
                     try:
                         ssh.close()
@@ -94,19 +91,15 @@ class ProxmoxClient:
 
     def _ssh_command(self, command: str) -> str:
         """Execute command on Proxmox host via SSH"""
-        import gevent
         try:
-            with gevent.Timeout(15):
-                ssh = self._get_ssh_connection()
-                stdin, stdout, stderr = ssh.exec_command(command)
-                out = stdout.read().decode()
-                err = stderr.read().decode()
+            ssh = self._get_ssh_connection()
+            stdin, stdout, stderr = ssh.exec_command(command, timeout=15)
+            out = stdout.read().decode()
+            err = stderr.read().decode()
 
-                if err.strip() and "warning" not in err.lower():
-                    raise Exception(err)
-                return out
-        except gevent.Timeout:
-            raise Exception(f"SSH command timed out after 15s: {command[:50]}...")
+            if err.strip() and "warning" not in err.lower():
+                raise Exception(err)
+            return out
         except Exception as e:
             raise Exception(f"SSH error: {e}")
 
@@ -158,8 +151,6 @@ class ProxmoxClient:
     def clone_vm(self, node: str, template_id: int, new_vmid: int, name: str,
                  storage: str = None, linked: bool = True) -> str:
         """Clone a VM from a template using Proxmox API"""
-        import requests
-        
         url = f"{self.host}/api2/json/nodes/{node}/qemu/{template_id}/clone"
         
         data = {
@@ -187,8 +178,6 @@ class ProxmoxClient:
 
     def optimize_vm_for_performance(self, node: str, vmid: int):
         """Optimize VM configuration for better performance"""
-        import requests
-        
         cfg = self.get_vm_config(node, vmid)
         changes = {}
         
@@ -230,7 +219,6 @@ class ProxmoxClient:
             return self._auth_cookie
         
         # Use API to create access ticket (no SSH)
-        import requests
         url = f"{self.host}/api2/json/access/ticket"
         data = {
             "username": self.user,
@@ -255,7 +243,6 @@ class ProxmoxClient:
     
     def get_vnc_ticket(self, node: str, vmid: int) -> Dict:
         """Get VNC ticket for console access via API (preferring Token over Password)"""
-        import requests
         url = f"{self.host}/api2/json/nodes/{node}/qemu/{vmid}/vncproxy"
         
         headers = {}

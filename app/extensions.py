@@ -5,6 +5,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_apscheduler import APScheduler
 import os
 
 db = SQLAlchemy()
@@ -12,6 +13,7 @@ migrate = Migrate()
 login_manager = LoginManager()
 csrf = CSRFProtect()
 talisman = Talisman()
+scheduler = APScheduler()
 # Limiter will be initialized with app config in the factory
 limiter = Limiter(key_func=get_remote_address, default_limits=[])
 

@@ -15,7 +15,7 @@ worker_class = 'gthread'
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
-preload_app = True
+preload_app = False
 timeout = 30
 keepalive = 2
 
@@ -49,7 +49,7 @@ raw_env = [
 ]
 
 # Preload application for better performance
-preload_app = True
+preload_app = False
 
 def when_ready(server):
     server.log.info("Server is ready. Spawning workers")

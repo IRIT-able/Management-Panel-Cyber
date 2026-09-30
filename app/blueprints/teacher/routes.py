@@ -11,6 +11,8 @@ from ...services.vm_orchestrator import (
     get_proxmox_client,
     delete_vm_for_student
 )
+from ...extensions import scheduler
+from flask import current_app
 import re
 import secrets
 import csv
@@ -511,27 +513,55 @@ def deploy_bulk_vms(class_id):
         return redirect(url_for('teacher.class_detail', class_id=class_id))
     
     try:
-        from ...services.vm_orchestrator import deploy_vms_for_students
-        
-        deployed_vms = deploy_vms_for_students(selected_student_ids, template_id)
-        
-        # Group results by node for display
-        node_summary = {}
-        for vm in deployed_vms:
-            if vm.proxmox_node not in node_summary:
-                node_summary[vm.proxmox_node] = 0
-            node_summary[vm.proxmox_node] += 1
-        
-        summary_msg = f'Successfully deployed {len(deployed_vms)} VMs'
-        if len(node_summary) > 1:
-            node_details = ', '.join([f'{count} on {node}' for node, count in node_summary.items()])
-            summary_msg += f' ({node_details})'
-        
-        flash(summary_msg, 'success')
+        from ...tasks import async_deploy_vms
+        import threading
+        threading.Thread(
+            target=async_deploy_vms,
+            args=[selected_student_ids, template_id, current_app._get_current_object().app_context()]
+        ).start()
+        flash(f'Deployment of VMs started in the background for {len(selected_student_ids)} students.', 'success')
         
     except Exception as e:
-        flash(f'Error during bulk deployment: {str(e)}', 'danger')
+        flash(f'Error starting bulk deployment: {str(e)}', 'danger')
     
+    return redirect(url_for('teacher.class_detail', class_id=class_id))
+
+@bp.route('/class/<int:class_id>/bulk_start', methods=['POST'])
+@login_required
+@teacher_required
+def bulk_start_vms(class_id):
+    """Start all VMs for a class"""
+    classroom = Classroom.query.get_or_404(class_id)
+    if not current_user.is_admin() and classroom.teacher_id != current_user.id:
+        flash('Access denied', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+        
+    from ...tasks import async_start_all_vms
+    import threading
+    threading.Thread(
+        target=async_start_all_vms,
+        args=[class_id, current_app._get_current_object().app_context()]
+    ).start()
+    flash('Starting all VMs in the background.', 'success')
+    return redirect(url_for('teacher.class_detail', class_id=class_id))
+
+@bp.route('/class/<int:class_id>/bulk_stop', methods=['POST'])
+@login_required
+@teacher_required
+def bulk_stop_vms(class_id):
+    """Stop all VMs for a class"""
+    classroom = Classroom.query.get_or_404(class_id)
+    if not current_user.is_admin() and classroom.teacher_id != current_user.id:
+        flash('Access denied', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+        
+    from ...tasks import async_stop_all_vms
+    import threading
+    threading.Thread(
+        target=async_stop_all_vms,
+        args=[class_id, current_app._get_current_object().app_context()]
+    ).start()
+    flash('Stopping all VMs in the background.', 'success')
     return redirect(url_for('teacher.class_detail', class_id=class_id))
 
 

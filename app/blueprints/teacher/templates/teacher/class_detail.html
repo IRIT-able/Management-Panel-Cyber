@@ -11,6 +11,18 @@
         </div>
         <div class="col-auto">
             <div class="d-flex gap-2 align-items-center">
+                <form method="POST" action="{{ url_for('teacher.bulk_start_vms', class_id=classroom.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Start all VMs in this class?')">
+                        <i class="bi bi-play-fill"></i> Start All VMs
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('teacher.bulk_stop_vms', class_id=classroom.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('Stop all VMs in this class?')">
+                        <i class="bi bi-stop-fill"></i> Stop All VMs
+                    </button>
+                </form>
                 <form method="POST" action="{{ url_for('teacher.class_bulk_vm_cleanup', class_id=classroom.id) }}"
                     class="d-inline"
                     onsubmit="return confirm('Stop and delete ALL VMs in this class? This cannot be undone.')">
