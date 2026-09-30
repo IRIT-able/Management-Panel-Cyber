@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}PC Status{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Student PC Status</h2>
+        
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('teacher.freeze_all_pcs') }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-snow"></i> Freeze All</button>
+            </form>
+            <form method="POST" action="{{ url_for('teacher.unfreeze_all_pcs') }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-success"><i class="bi bi-unlock"></i> Unfreeze All</button>
+            </form>
+            <a href="{{ url_for('teacher.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for pc in pcs %}
+        <div class="col">
+            <div class="card h-100 {% if pc.reachable %}border-success{% else %}border-danger{% endif %} shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center {% if pc.reachable %}bg-success text-white{% else %}bg-danger text-white{% endif %}">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pc-display"></i> {{ pc.name }}
+                    </h5>
+                    {% if pc.reachable %}
+                        <span class="badge bg-light text-success">Online</span>
+                    {% else %}
+                        <span class="badge bg-light text-danger">Offline</span>
+                    {% endif %}
+                </div>
+                
+                {% if pc.reachable %}
+                <div class="vnc-wrapper">
+                    <div id="screen-{{ pc.name }}" class="livestream-screen" data-pc="{{ pc.name }}">
+                        <div class="status-text"><i class="spinner-border spinner-border-sm"></i> Connecting...</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="vnc-wrapper">
+                    <div class="d-flex align-items-center justify-content-center h-100 text-danger">
+                        <i class="bi bi-x-circle me-2"></i> Offline
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="card-body">
+                    <p class="mb-2"><strong>IP Address:</strong> <code>{{ pc.ip }}</code></p>
+                    
+                    {% if pc.reachable %}
+                        <p class="mb-3">
+                            <strong>Lock Status:</strong> 
+                            {% if pc.frozen %}
+                                <span class="text-danger"><i class="bi bi-lock-fill"></i> Frozen</span>
+                            {% else %}
+                                <span class="text-success"><i class="bi bi-unlock-fill"></i> Unfrozen</span>
+                            {% endif %}
+                        </p>
+                        
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('teacher.pc_console', pc_name=pc.name) }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-display"></i> Remote Into
+                            </a>
+                            <form method="POST" action="{{ url_for('teacher.freeze_individual_pc') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <input type="hidden" name="pc_name" value="{{ pc.name }}" />
+                                <button type="submit" class="btn {% if pc.frozen %}btn-success{% else %}btn-danger{% endif %} btn-sm w-100">
+                                    {% if pc.frozen %}
+                                        <i class="bi bi-unlock"></i> Unfreeze
+                                    {% else %}
+                                        <i class="bi bi-lock"></i> Freeze
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <p class="mb-0 text-muted"><small>{{ pc.error }}</small></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style nonce="{{ csp_nonce() }}">
+    .vnc-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; /* 16:9 aspect ratio */
+        background: #1a1a1a;
+        overflow: hidden;
+    }
+    .livestream-screen {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    .livestream-screen .status-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #888;
+        font-size: 0.85rem;
+        z-index: 5;
+    }
+    /* Constrain everything noVNC injects */
+    .livestream-screen > div {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+    .livestream-screen canvas {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+    }
+    /* Hide noVNC clipboard textarea */
+    .livestream-screen textarea {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script type="module" nonce="{{ csp_nonce() }}">
+    import RFB from '/static/vendor/novnc/core/rfb.js';
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const screens = document.querySelectorAll('.livestream-screen');
+        screens.forEach(screen => {
+            const pcName = screen.dataset.pc;
+            const statusText = screen.querySelector('.status-text');
+            
+            let protocol = (window.location.protocol === "https:") ? "wss:" : "ws:";
+            let url = `${protocol}//${window.location.host}/pc-proxy/ws/${pcName}`;
+            
+            try {
+                let rfb = new RFB(screen, url, {
+                    credentials: { password: '' },
+                    shared: true,
+                    wsProtocols: ['binary']
+                });
+                
+                rfb.addEventListener("connect", () => {
+                    if (statusText) statusText.style.display = 'none';
+                });
+                
+                rfb.addEventListener("disconnect", (e) => {
+                    if (statusText) {
+                        statusText.style.display = 'block';
+                        statusText.innerHTML = '<i class="bi bi-x-circle text-danger"></i> Disconnected';
+                    }
+                });
+                
+                rfb.scaleViewport = true;
+                rfb.resizeSession = false;
+                rfb.viewOnly = true;
+                
+            } catch (e) {
+                console.error("VNC Livestream Error for " + pcName, e);
+                if (statusText) statusText.textContent = "Error";
+            }
+        });
+    });
+</script>
+{% endblock %}

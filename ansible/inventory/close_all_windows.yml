@@ -1,0 +1,11 @@
+---
+- name: Close user graphical applications without logging out
+  hosts: all
+  become: true
+  tasks:
+    - name: Gracefully terminate desktop applications including Packet Tracer
+      ansible.builtin.shell: |
+        pkill -15 -u student -f "firefox|chrome|chromium|packettracer|PacketTracer|gedit|libreoffice|vlc|nautilus|code"
+      register: pkill_result
+      failed_when: pkill_result.rc not in [0, 1]
+      changed_when: pkill_result.rc == 0

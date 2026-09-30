@@ -1,0 +1,93 @@
+---
+- name: Fix Firefox Certificates for Snap
+  hosts: students
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Create certs directory in Snap profile
+      ansible.builtin.file:
+        path: /home/student/snap/firefox/common/certs
+        state: directory
+        owner: student
+        group: student
+        mode: "0755"
+
+    - name: Copy root cert to snap dir
+      ansible.builtin.copy:
+        src: /etc/firefox/policies/certs/caddy-2025-ecc-root.crt
+        dest: /home/student/snap/firefox/common/certs/caddy-2025-ecc-root.crt
+        owner: student
+        group: student
+        mode: "0644"
+        remote_src: yes
+
+    - name: Copy intermediate cert to snap dir
+      ansible.builtin.copy:
+        src: /etc/firefox/policies/certs/caddy-ecc-intermediate.crt
+        dest: /home/student/snap/firefox/common/certs/caddy-ecc-intermediate.crt
+        owner: student
+        group: student
+        mode: "0644"
+        remote_src: yes
+
+    - name: Deploy strict policies.json with snap-safe cert paths
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Certificates": {
+                "ImportEnterpriseRoots": true,
+                "Install": [
+                  "/home/student/snap/firefox/common/certs/caddy-2025-ecc-root.crt",
+                  "/home/student/snap/firefox/common/certs/caddy-ecc-intermediate.crt"
+                ]
+              },
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "DisplayBookmarksToolbar": "never",
+              "DisableCustomizingToolbar": true,
+              "BlockAboutPreferences": true,
+              "BlockAboutAddons": true,
+              "BlockAboutConfig": true,
+              "BlockAboutProfiles": true,
+              "BlockAboutSupport": true,
+              "DisableDeveloperTools": true,
+              "DisableFirefoxAccounts": true,
+              "DisablePocket": true,
+              "DisablePrivateBrowsing": true,
+              "DisableSetDesktopBackground": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "DontCheckDefaultBrowser": true,
+              "OfferToSaveLogins": false,
+              "PasswordManagerEnabled": false,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": "",
+              "ExtensionSettings": {
+                "newtaboverride@agenedia.com": {
+                  "installation_mode": "force_installed",
+                  "install_url": "https://cybersecurity.local/static/newtab.xpi",
+                  "default_area": "menupanel"
+                },
+                "*": {
+                  "installation_mode": "blocked"
+                }
+              },
+              "3rdparty": {
+                "Extensions": {
+                  "newtaboverride@agenedia.com": {
+                    "type": "custom_url",
+                    "url": "https://cybersecurity.local/",
+                    "focus_website": true
+                  }
+                }
+              }
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"

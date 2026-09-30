@@ -1,0 +1,37 @@
+---
+- name: Apply Global Firefox Policies (Cyberlab Portal)
+  hosts: students
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure Firefox policies directory exists
+      ansible.builtin.file:
+        path: /etc/firefox/policies
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+        
+    - name: Create policies.json to force homepage to Cyberlab portal
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "NewTabPage": false,
+              "DisablePocket": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": ""
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"

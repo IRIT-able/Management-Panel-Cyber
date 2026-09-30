@@ -1,0 +1,40 @@
+---
+- name: Launch Packet Tracer for X11 (Direct Terminal Method Optimized)
+  hosts: students
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Launch Packet Tracer using single optimized bash block
+      ansible.builtin.shell: |
+        set -e
+        USER="student"
+        UID_NUM=$(id -u "$USER" || echo "")
+        
+        if [ -z "$UID_NUM" ]; then
+            echo "User $USER not found."
+            exit 1
+        fi
+
+        # Force close all Packet Tracer processes instantly (use -x to avoid killing ansible)
+        pkill -9 -x "packettracer" || true
+        pkill -9 -x "PacketTracer" || true
+        pkill -9 -x "pt_bin" || true
+        sleep 0.5
+
+        GNOME_PID=$(pgrep -u "$USER" gnome-shell | head -n1)
+        if [ -z "$GNOME_PID" ]; then
+            echo "gnome-shell not running for student."
+            exit 0
+        fi
+
+        export DISPLAY=$(cat /proc/$GNOME_PID/environ | tr '\0' '\n' | grep '^DISPLAY=' | cut -d= -f2)
+        if [ -z "$DISPLAY" ]; then export DISPLAY=:0; fi
+
+        export XAUTHORITY=$(cat /proc/$GNOME_PID/environ | tr '\0' '\n' | grep '^XAUTHORITY=' | cut -d= -f2)
+        if [ -z "$XAUTHORITY" ]; then export XAUTHORITY=/run/user/$UID_NUM/gdm/Xauthority; fi
+        
+        # Use setsid -f to fully detach the process from the SSH session and cgroup
+        su - "$USER" -c "DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY setsid -f packettracer </dev/null >/dev/null 2>&1"
+      args:
+        executable: /bin/bash
+      changed_when: false

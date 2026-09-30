@@ -8,7 +8,41 @@
         <div class="col">
             <h1>My Classes</h1>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2 align-items-center">
+            {% if student_pcs %}
+            <form method="POST" action="{{ url_for('teacher.toggle_freeze_all') }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="btn btn-info"
+                    onclick="return confirm('Toggle freeze on ALL student PCs?')">
+                    <i class="bi bi-snow2"></i> Freeze/Unfreeze All PCs
+                </button>
+            </form>
+            <div class="dropdown">
+                <button class="btn btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                    <i class="bi bi-pc-display"></i> Freeze Individual PCs
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 280px;">
+                    <form method="POST" action="{{ url_for('teacher.freeze_individual_pc') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <div class="mb-2">
+                            <label for="pc_name" class="form-label form-label-sm mb-1">Select PC</label>
+                            <select name="pc_name" id="pc_name" class="form-select form-select-sm" required>
+                                <option value="">-- Select PC --</option>
+                                {% for pc in student_pcs %}
+                                <option value="{{ pc.name }}">{{ pc.name }} ({{ pc.ip }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-info btn-sm w-100" onclick="return confirm('Toggle freeze on ' + (document.getElementById('pc_name').selectedOptions[0]?.text || 'selected PC') + '?')">
+                            <i class="bi bi-snow2"></i> Toggle Freeze
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('teacher.pc_status') }}" class="btn btn-secondary">
+                <i class="bi bi-display"></i> PC Status
+            </a>
             <a href="{{ url_for('teacher.import_class') }}" class="btn btn-primary">
                 <i class="bi bi-file-earmark-arrow-up"></i> Import Class
             </a>

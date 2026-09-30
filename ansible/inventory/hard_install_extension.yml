@@ -1,0 +1,21 @@
+---
+- name: Hard Install Firefox Extension
+  hosts: students
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure extensions directory exists in Snap profile
+      ansible.builtin.file:
+        path: /home/student/snap/firefox/common/.mozilla/firefox/cyberlab.default/extensions
+        state: directory
+        owner: student
+        group: student
+        mode: "0755"
+
+    - name: Copy extension directly to Snap profile
+      ansible.builtin.copy:
+        src: /tmp/newtab.xpi
+        dest: /home/student/snap/firefox/common/.mozilla/firefox/cyberlab.default/extensions/newtaboverride@agenedia.com.xpi
+        owner: student
+        group: student
+        mode: "0644"

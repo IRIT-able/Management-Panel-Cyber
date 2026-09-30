@@ -1,0 +1,19 @@
+---
+- name: Sync time with cyberpanel server
+  hosts: students
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure timesyncd.conf has the correct NTP server
+      ansible.builtin.lineinfile:
+        path: /etc/systemd/timesyncd.conf
+        regexp: '^#?NTP='
+        line: 'NTP=cybersecurity.local'
+        state: present
+
+    - name: Restart systemd-timesyncd to apply changes
+      ansible.builtin.systemd:
+        name: systemd-timesyncd
+        state: restarted
+        enabled: yes

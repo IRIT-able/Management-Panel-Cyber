@@ -1,0 +1,59 @@
+---
+- name: Force New Tab URL via Extension and Enterprise Policy
+  hosts: students
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Push the signed XPI extension file to student PCs
+      ansible.builtin.copy:
+        src: /tmp/newtab.xpi
+        dest: /opt/newtab.xpi
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure Firefox policies directory exists
+      ansible.builtin.file:
+        path: /etc/firefox/policies
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+        
+    - name: Create advanced policies.json to force New Tab Extension
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "DisablePocket": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": "",
+              "ExtensionSettings": {
+                "newtaboverride@agenedia.com": {
+                  "installation_mode": "force_installed",
+                  "install_url": "file:///opt/newtab.xpi"
+                }
+              },
+              "3rdparty": {
+                "Extensions": {
+                  "newtaboverride@agenedia.com": {
+                    "type": "custom_url",
+                    "url": "https://cybersecurity.local/",
+                    "focus_website": true
+                  }
+                }
+              }
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"

@@ -351,8 +351,8 @@
                     <button id="clipboard-receive-btn" class="btn-control" title="Receive clipboard from VM">
                         <i class="bi bi-clipboard-check"></i> Get Clipboard
                     </button>
-                    <button id="take-screenshot" class="btn-control">
-                        <i class="bi bi-camera"></i> Take Screenshot
+                    <button id="take-screenshot" class="btn-control" {% if not assignments %}disabled title="No active assignments"{% endif %}>
+                        <i class="bi bi-camera"></i> Submit Screenshot
                     </button>
                 </div>
             </div>
@@ -410,6 +410,38 @@
         </div>
     </div>
 
+    <!-- Submission Modal -->
+    <div class="modal fade" id="submissionModal" tabindex="-1" data-bs-theme="dark">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Submit Screenshot</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {% if assignments %}
+                    <div class="mb-3">
+                        <label for="assignment-select" class="form-label">Select Assignment:</label>
+                        <select id="assignment-select" class="form-select bg-dark text-white border-secondary">
+                            {% for assignment in assignments %}
+                            <option value="{{ assignment.id }}">{{ assignment.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3 text-center">
+                        <img id="screenshot-preview" src="" alt="Screenshot Preview" class="img-fluid border border-secondary rounded" style="max-height: 400px;">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-submit-btn">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
     <script type="module" nonce="{{ csp_nonce() }}">
         import RFB from '/static/vendor/novnc/core/rfb.js';
 
@@ -510,6 +542,7 @@
             }
         };
 
+        let currentBlob = null;
         window.takeScreenshot = function () {
             if (rfb && rfb._rfbConnectionState === 'connected') {
                 try {
@@ -518,11 +551,14 @@
                     if (!canvas) {
                         throw new Error('Canvas not found');
                     }
-                    const link = document.createElement('a');
-                    link.download = `vm_${screenDiv.dataset.vmId}_screenshot_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
-                    link.href = canvas.toDataURL();
-                    link.click();
-                    ConsoleUtils.showNotification('Screenshot downloaded!', 'success');
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('submissionModal'));
+                    document.getElementById('screenshot-preview').src = canvas.toDataURL();
+                    canvas.toBlob((blob) => {
+                        currentBlob = blob;
+                        modal.show();
+                    });
                 } catch (error) {
                     console.error('Screenshot error:', error);
                     ConsoleUtils.showNotification('Failed to take screenshot: ' + error.message, 'error');
@@ -531,6 +567,53 @@
                 ConsoleUtils.showNotification('Not connected to VM console', 'error');
             }
         };
+
+        document.getElementById('confirm-submit-btn')?.addEventListener('click', async () => {
+            if (!currentBlob) return;
+            const selectEl = document.getElementById('assignment-select');
+            if (!selectEl) {
+                ConsoleUtils.showNotification('No assignments available', 'warning');
+                return;
+            }
+            const assignmentId = selectEl.value;
+            if (!assignmentId) {
+                ConsoleUtils.showNotification('Please select an assignment', 'warning');
+                return;
+            }
+            
+            const btn = document.getElementById('confirm-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+            
+            try {
+                const formData = new FormData();
+                formData.append("image", currentBlob, "submission.png");
+                formData.append("assignment_id", assignmentId);
+                formData.append("vm_id", screenDiv.dataset.vmId);
+                formData.append("csrf_token", "{{ csrf_token() }}");
+
+                const response = await fetch("/student/submit_screenshot", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token() }}"
+                    },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    ConsoleUtils.showNotification('Screenshot submitted successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('submissionModal')).hide();
+                } else {
+                    const data = await response.json();
+                    ConsoleUtils.showNotification(data.error || 'Failed to submit', 'error');
+                }
+            } catch (err) {
+                ConsoleUtils.showNotification('Network error submitting screenshot', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit';
+            }
+        });
 
         window.controlVM = function (action) {
             const vmId = screenDiv.dataset.vmId;
@@ -760,5 +843,4 @@
         updateVMControls('{{ vm.status }}');
     </script>
 </body>
-
 </html>

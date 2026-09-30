@@ -1,5 +1,5 @@
 ---
-- name: Toggle freeze / unfreeze student computers (input only)
+- name: Toggle freeze / unfreeze student computers (Fast Version)
   hosts: students
   become: true
   gather_facts: false
@@ -10,127 +10,66 @@
     marker_file: "/var/lib/cyberlab/input_frozen"
 
   tasks:
-    ######################################################################
-    # STATE DETECTION
-    ######################################################################
-    - name: Ensure cyberlab state dir exists
-      ansible.builtin.file:
-        path: "{{ state_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0755"
-
-    - name: Check current freeze state
-      ansible.builtin.stat:
-        path: "{{ marker_file }}"
-      register: freeze_marker
-
-    - name: Set desired action based on marker
-      ansible.builtin.set_fact:
-        freeze_state: "{{ 'unfreeze' if freeze_marker.stat.exists else 'freeze' }}"
-
-    - name: Debug toggle decision
-      ansible.builtin.debug:
-        msg: "Toggle decision → {{ freeze_state | upper }}"
-
-    ######################################################################
-    # SESSION DISCOVERY
-    ######################################################################
-    - name: Get sessions for student_user
+    - name: Gather state and display in one shot
       ansible.builtin.shell: |
-        loginctl list-sessions --no-legend | awk '$3=="{{ student_user }}" {print $1}'
-      args:
-        executable: /bin/bash
-      register: student_sessions
+        mkdir -p "{{ state_dir }}"
+        chmod 0755 "{{ state_dir }}"
+        
+        if [ -f "{{ marker_file }}" ]; then
+          echo "FROZEN=true"
+        else
+          echo "FROZEN=false"
+        fi
+        
+        DISP=$(who | awk -v u="{{ student_user }}" '$1==u && $2 ~ /^:/ {print $2}' | head -n1)
+        if [ -z "$DISP" ]; then DISP=":0"; fi
+        echo "DISPLAY=$DISP"
+      register: host_state
       changed_when: false
 
-    - name: Fail if no student session found
-      ansible.builtin.fail:
-        msg: "No active graphical session for {{ student_user }}"
-      when: student_sessions.stdout_lines | length == 0
-
-    - name: Choose first session id
+    - name: Parse host state
       ansible.builtin.set_fact:
-        session_id: "{{ student_sessions.stdout_lines[0] }}"
+        is_frozen: "{{ 'FROZEN=true' in host_state.stdout }}"
+        display_var: "{{ host_state.stdout | regex_search('DISPLAY=(.*)', '\\1') | first }}"
 
-    - name: Get session type (x11 / wayland)
-      ansible.builtin.command: "loginctl show-session {{ session_id }} -p Type --value"
-      register: session_type_cmd
-      changed_when: false
-
-    - name: Set session_type fact
+    - name: Calculate majority state across all online hosts
+      run_once: true
       ansible.builtin.set_fact:
-        session_type: "{{ session_type_cmd.stdout | trim }}"
+        global_frozen_count: "{{ ansible_play_hosts | map('extract', hostvars, 'is_frozen') | select | list | length }}"
+        global_total_count: "{{ ansible_play_hosts | length }}"
 
-    ######################################################################
-    # WAYLAND → LOCK / UNLOCK
-    ######################################################################
-    - name: Wayland toggle freeze
-      ansible.builtin.command: "loginctl lock-session {{ session_id }}"
-      when:
-        - session_type == "wayland"
-        - freeze_state == "freeze"
-
-    - name: Wayland toggle unfreeze
-      ansible.builtin.command: "loginctl unlock-session {{ session_id }}"
-      when:
-        - session_type == "wayland"
-        - freeze_state == "unfreeze"
-
-    ######################################################################
-    # X11 → DISABLE / ENABLE INPUT
-    ######################################################################
-    - name: Get DISPLAY for X11 session
-      ansible.builtin.command: "loginctl show-session {{ session_id }} -p Display --value"
-      register: display_cmd
-      changed_when: false
-      when: session_type == "x11"
-
-    - name: Set DISPLAY fact
+    - name: Decide global action based on majority
+      run_once: true
       ansible.builtin.set_fact:
-        display_var: "{{ display_cmd.stdout | trim if display_cmd.stdout | trim != '' else ':0' }}"
-      when: session_type == "x11"
+        global_action: "{{ force_action if force_action is defined else ('unfreeze' if (global_frozen_count | int > (global_total_count | int) / 2) else 'freeze') }}"
 
-    - name: X11 toggle freeze (disable input)
+    - name: Propagate global action to all hosts
+      ansible.builtin.set_fact:
+        freeze_state: "{{ hostvars[ansible_play_hosts[0]]['global_action'] }}"
+
+    - name: Execute Unfreeze
+      ansible.builtin.shell: |
+        killall xtrlock || true
+        export DISPLAY="{{ display_var }}"
+        export XAUTHORITY="/run/user/$(id -u {{ student_user }})/gdm/Xauthority"
+        if [ ! -f "$XAUTHORITY" ]; then export XAUTHORITY="/home/{{ student_user }}/.Xauthority"; fi
+        setxkbmap -option
+        for id in $(xinput list | grep -i 'floating slave' | sed -n 's/.*id=\([0-9]*\).*/\1/p'); do
+          xinput reattach $id 2 2>/dev/null || xinput reattach $id 3 2>/dev/null || true
+        done
+        rm -f "{{ marker_file }}"
+      when: freeze_state == 'unfreeze'
+
+    - name: Execute Freeze
       ansible.builtin.shell: |
         export DISPLAY="{{ display_var }}"
-        xinput --list --short \
-          | awk -F'id=' '/slave/{print $2}' \
-          | awk '{print $1}' \
-          | while read -r id; do
-              xinput disable "$id" || true
-            done
-      become_user: "{{ student_user }}"
-      when:
-        - session_type == "x11"
-        - freeze_state == "freeze"
-
-    - name: X11 toggle unfreeze (enable input)
-      ansible.builtin.shell: |
-        export DISPLAY="{{ display_var }}"
-        xinput --list --short \
-          | awk -F'id=' '/slave/{print $2}' \
-          | awk '{print $1}' \
-          | while read -r id; do
-              xinput enable "$id" || true
-            done
-      become_user: "{{ student_user }}"
-      when:
-        - session_type == "x11"
-        - freeze_state == "unfreeze"
-
-    ######################################################################
-    # UPDATE MARKER
-    ######################################################################
-    - name: Write freeze marker
-      ansible.builtin.copy:
-        dest: "{{ marker_file }}"
-        content: "frozen\n"
-      when: freeze_state == "freeze"
-
-    - name: Remove freeze marker
-      ansible.builtin.file:
-        path: "{{ marker_file }}"
-        state: absent
-      when: freeze_state == "unfreeze"
+        export XAUTHORITY="/run/user/$(id -u {{ student_user }})/gdm/Xauthority"
+        if [ ! -f "$XAUTHORITY" ]; then export XAUTHORITY="/home/{{ student_user }}/.Xauthority"; fi
+        setxkbmap -option srvrkeys:none
+        for id in $(xinput list | grep -iE 'slave.*pointer|slave.*keyboard' | grep -v XTEST | sed -n 's/.*id=\([0-9]*\).*/\1/p'); do
+          xinput float $id || true
+        done
+        killall xtrlock || true
+        nohup bash -c 'for i in {1..120}; do xtrlock </dev/null >/dev/null 2>&1; rc=$?; if [ $rc -ne 1 ]; then break; fi; sleep 1; done' >/dev/null 2>&1 &
+        echo "frozen" > "{{ marker_file }}"
+      when: freeze_state == 'freeze'

@@ -1,0 +1,35 @@
+---
+- name: Fix x11vnc script to properly detect Display and XAuthority
+  hosts: students
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Update start.sh with precise environment extraction
+      ansible.builtin.copy:
+        dest: /opt/x11vnc/start.sh
+        content: |
+          #!/bin/bash
+          # Wait for student to log in by checking for gnome-shell
+          until pgrep -u student gnome-shell >/dev/null; do sleep 2; done
+
+          GNOME_PID=$(pgrep -u student gnome-shell | head -n1)
+
+          # Extract real DISPLAY directly from the active gnome-shell process
+          export DISPLAY=$(cat /proc/$GNOME_PID/environ | tr '\0' '\n' | grep '^DISPLAY=' | cut -d= -f2)
+          if [ -z "$DISPLAY" ]; then export DISPLAY=:0; fi
+
+          export XAUTHORITY=$(cat /proc/$GNOME_PID/environ | tr '\0' '\n' | grep '^XAUTHORITY=' | cut -d= -f2)
+          if [ -z "$XAUTHORITY" ]; then export XAUTHORITY=/run/user/$(id -u student)/gdm/Xauthority; fi
+
+          LD_LIBRARY_PATH=/opt/x11vnc/portable/usr/lib/x86_64-linux-gnu /opt/x11vnc/portable/usr/bin/x11vnc -display $DISPLAY -auth $XAUTHORITY -forever -shared -rfbport 5900 -nopw -noshm
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Restart x11vnc service
+      ansible.builtin.systemd:
+        name: x11vnc
+        state: restarted
+        daemon_reload: true
+      ignore_errors: true

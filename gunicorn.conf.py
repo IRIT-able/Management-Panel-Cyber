@@ -10,18 +10,18 @@ backlog = 2048
 
 # Worker processes
 workers = 2
-threads = 4
+threads = 100
 worker_class = 'gthread'
 worker_connections = 1000
-max_requests = 1000
+max_requests = 0
 max_requests_jitter = 50
 preload_app = False
 timeout = 30
 keepalive = 2
 
 # Restart workers after this many requests, with up to 50% jitter
-max_requests = 1200
-max_requests_jitter = 600
+max_requests = 0
+max_requests_jitter = 0
 
 # Logging
 accesslog = '-'

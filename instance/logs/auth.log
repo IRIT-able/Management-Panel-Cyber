@@ -117,3 +117,79 @@
 2026-03-06 19:32:21,392 INFO auth: student.success ip=192.168.1.27 student_id=3 username=test3
 2026-03-06 19:32:33,695 WARNING auth: student.failure ip=192.168.1.16 username=test1
 2026-03-06 19:33:37,185 INFO auth: student.success ip=192.168.1.16 student_id=1 username=test1
+2026-03-06 19:50:38,985 INFO auth: student.success ip=192.168.1.38 student_id=4 username=ian
+2026-03-06 21:02:35,594 WARNING auth: user.failure ip=192.168.1.23 username=iaadmin
+2026-03-06 21:02:44,417 WARNING auth: user.failure ip=192.168.1.23 username=iaadmin
+2026-03-06 21:02:52,991 WARNING auth: user.failure ip=192.168.1.23 username=iaadmin
+2026-03-06 21:02:57,325 WARNING auth: user.failure ip=192.168.1.23 username=iaadmin
+2026-03-06 21:03:13,792 WARNING auth: user.failure ip=192.168.1.23 username=iaadmin
+2026-03-06 21:04:01,341 WARNING auth: user.locked ip=192.168.1.23 username=iaadmin
+2026-03-11 17:34:36,599 INFO auth: user.success ip=192.168.1.38 user_id=3 username=iaadmin
+2026-08-03 18:40:47,067 INFO auth: user.success ip=192.168.1.45 user_id=3 username=iaadmin
+2026-08-04 17:48:06,519 INFO auth: student.success ip=192.168.1.45 student_id=1 username=test2
+2026-08-04 19:13:46,287 WARNING auth: user.failure ip=192.168.1.16 username=iaadmin
+2026-08-04 19:13:51,287 INFO auth: user.success ip=192.168.1.16 user_id=3 username=iaadmin
+2026-08-07 18:21:37,181 INFO auth: student.success ip=192.168.1.27 student_id=1 username=test2
+2026-08-07 19:19:39,672 INFO auth: user.success ip=192.168.1.47 user_id=3 username=iaadmin
+2026-08-17 17:50:44,375 INFO auth: student.success ip=192.168.1.45 student_id=1 username=test2
+2026-08-17 18:16:43,723 WARNING auth: login.unknown ip=192.168.1.47 username=admin
+2026-08-17 19:18:11,341 INFO auth: student.success ip=192.168.1.45 student_id=1 username=testtest
+2026-09-08 18:38:54,107 INFO auth: user.success ip=192.168.1.45 user_id=3 username=iaadmin
+2026-09-08 19:21:43,010 INFO auth: user.success ip=192.168.1.63 user_id=3 username=iaadmin
+2026-09-15 17:12:46,798 INFO auth: student.success ip=192.168.1.45 student_id=1 username=testtest
+2026-09-15 17:18:01,174 INFO auth: student.success ip=192.168.1.45 student_id=1 username=testtest
+2026-09-15 18:48:16,459 INFO auth: user.success ip=192.168.1.45 user_id=5 username=testteach
+2026-09-15 19:13:55,215 INFO auth: user.success ip=192.168.1.45 user_id=3 username=iaadmin
+2026-09-17 13:25:14,733 INFO auth: user.success ip=192.168.1.56 user_id=3 username=iaadmin
+2026-09-17 17:31:36,953 INFO auth: user.success ip=192.168.1.14 user_id=3 username=iaadmin
+2026-09-17 17:51:21,558 WARNING auth: login.unknown ip=192.168.1.56 username=student
+2026-09-17 17:51:27,692 WARNING auth: login.unknown ip=192.168.1.56 username=student
+2026-09-17 17:52:03,062 INFO auth: student.success ip=192.168.1.56 student_id=4 username=max
+2026-09-17 17:53:01,693 INFO auth: student.success ip=192.168.1.76 student_id=5 username=tyler
+2026-09-17 17:56:10,141 INFO auth: student.success ip=192.168.1.56 student_id=4 username=max
+2026-09-17 18:14:51,322 INFO auth: user.success ip=192.168.1.45 user_id=3 username=iaadmin
+2026-09-29 18:02:11,858 INFO auth: user.success ip=192.168.1.14 user_id=3 username=iaadmin
+2026-09-30 17:33:09,227 INFO auth: user.success ip=192.168.1.45 user_id=3 username=iaadmin
+2026-09-30 18:17:38,151 WARNING auth: login.unknown ip=192.168.1.63 username=khloeg
+2026-09-30 18:20:16,135 INFO auth: student.success ip=192.168.1.55 student_id=12 username=grant-g
+2026-09-30 18:20:17,123 INFO auth: student.success ip=192.168.1.63 student_id=11 username=khloe-g
+2026-09-30 18:20:18,396 INFO auth: student.success ip=192.168.1.69 student_id=6 username=nanditha-b
+2026-09-30 18:20:21,521 INFO auth: student.success ip=192.168.1.66 student_id=13 username=jackson-h
+2026-09-30 18:20:27,181 INFO auth: student.success ip=192.168.1.58 student_id=18 username=connor-k
+2026-09-30 18:20:56,880 INFO auth: student.success ip=192.168.1.74 student_id=16 username=miller-h
+2026-09-30 18:21:08,508 INFO auth: student.success ip=192.168.1.68 student_id=20 username=sai-k
+2026-09-30 18:21:20,873 WARNING auth: login.unknown ip=192.168.1.76 username=LohithakshV
+2026-09-30 18:21:22,657 INFO auth: student.success ip=192.168.1.64 student_id=25 username=bill-t
+2026-09-30 18:21:36,267 WARNING auth: student.failure ip=192.168.1.51 username=lucca-s
+2026-09-30 18:21:49,992 WARNING auth: login.unknown ip=192.168.1.76 username=LohithakshV
+2026-09-30 18:22:01,217 INFO auth: student.success ip=192.168.1.78 student_id=17 username=tyler-h
+2026-09-30 18:22:02,137 INFO auth: student.success ip=192.168.1.51 student_id=24 username=lucca-s
+2026-09-30 18:22:08,671 INFO auth: student.success ip=192.168.1.56 student_id=22 username=max-r
+2026-09-30 18:22:10,234 WARNING auth: student.failure ip=192.168.1.54 username=nathaniel-h
+2026-09-30 18:22:24,903 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:22:25,019 WARNING auth: login.unknown ip=192.168.1.77 username=brooklync
+2026-09-30 18:22:33,379 WARNING auth: student.failure ip=192.168.1.54 username=nathaniel-h
+2026-09-30 18:22:38,602 WARNING auth: student.failure ip=192.168.1.62 username=rohan-k
+2026-09-30 18:22:47,394 INFO auth: student.success ip=192.168.1.76 student_id=27 username=lohithaksh-v
+2026-09-30 18:22:47,846 INFO auth: student.success ip=192.168.1.77 student_id=7 username=brooklyn-c
+2026-09-30 18:22:58,942 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:23:07,142 WARNING auth: student.failure ip=192.168.1.54 username=nathaniel-h
+2026-09-30 18:23:28,736 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:23:31,365 WARNING auth: student.failure ip=192.168.1.62 username=rohan-k
+2026-09-30 18:23:34,009 WARNING auth: student.failure ip=192.168.1.72 username=nyla-t
+2026-09-30 18:23:40,516 INFO auth: student.success ip=192.168.1.54 student_id=15 username=nathaniel-h
+2026-09-30 18:24:01,618 WARNING auth: student.failure ip=192.168.1.72 username=nyla-t
+2026-09-30 18:24:20,620 INFO auth: student.success ip=192.168.1.62 student_id=19 username=rohan-k
+2026-09-30 18:24:22,368 WARNING auth: student.failure ip=192.168.1.67 username=lalita-c
+2026-09-30 18:24:24,022 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:24:46,655 INFO auth: student.success ip=192.168.1.67 student_id=9 username=lalita-c
+2026-09-30 18:24:51,286 WARNING auth: student.failure ip=192.168.1.72 username=nyla-t
+2026-09-30 18:25:37,807 INFO auth: student.success ip=192.168.1.68 student_id=20 username=sai-k
+2026-09-30 18:26:07,043 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:26:11,222 WARNING auth: student.failure ip=192.168.1.72 username=nyla-t
+2026-09-30 18:26:24,352 WARNING auth: student.locked ip=192.168.1.71 username=dothan-p
+2026-09-30 18:26:28,564 INFO auth: student.success ip=192.168.1.72 student_id=26 username=nyla-t
+2026-09-30 18:27:25,287 WARNING auth: student.failure ip=192.168.1.60 username=shashank-s
+2026-09-30 18:28:02,556 INFO auth: student.success ip=192.168.1.60 student_id=23 username=shashank-s
+2026-09-30 18:29:16,002 WARNING auth: student.failure ip=192.168.1.71 username=dothan-p
+2026-09-30 18:30:49,091 INFO auth: student.success ip=192.168.1.78 student_id=17 username=tyler-h

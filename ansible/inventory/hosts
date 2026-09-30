@@ -1,10 +1,28 @@
 [students]
-PC1A ansible_host=192.168.1.23
-PC3  ansible_host=192.168.1.16
-PC6  ansible_host=192.168.1.26
-PC9  ansible_host=192.168.1.25
-PC7  ansible_host=192.168.1.27
-PC1  ansible_host=192.168.1.24
+PC1 ansible_host=192.168.1.51
+PC2 ansible_host=192.168.1.76
+PC3 ansible_host=192.168.1.56
+PC4 ansible_host=192.168.1.78
+PC5 ansible_host=192.168.1.64
+PC6 ansible_host=192.168.1.58
+PC7 ansible_host=192.168.1.66
+PC8 ansible_host=192.168.1.59
+PC9 ansible_host=192.168.1.55
+PC10 ansible_host=192.168.1.57
+PC11 ansible_host=192.168.1.77
+PC12 ansible_host=192.168.1.63
+PC13 ansible_host=192.168.1.74
+PC14 ansible_host=192.168.1.72
+PC15 ansible_host=192.168.1.79
+PC16 ansible_host=192.168.1.71
+PC17 ansible_host=192.168.1.69
+PC18 ansible_host=192.168.1.68
+PC19 ansible_host=192.168.1.67
+PC20 ansible_host=192.168.1.65
+PC21 ansible_host=192.168.1.61
+PC22 ansible_host=192.168.1.62
+PC23 ansible_host=192.168.1.60
+PC24 ansible_host=192.168.1.54
 [students:vars]
 ansible_user=root
 ansible_ssh_private_key_file=~/.ssh/id_ed25519

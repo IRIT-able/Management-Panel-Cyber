@@ -1,15 +1,27 @@
 ---
-- name: Enable Firefox enterprise roots (use system CA store)
-  copy:
-    dest: /etc/firefox/policies/policies.json
-    owner: root
-    group: root
-    mode: '0644'
-    content: |
-      {
-        "policies": {
-          "Certificates": {
-            "ImportEnterpriseRoots": true
+- name: Enable Firefox enterprise roots
+  hosts: students
+  become: true
+  tasks:
+    - name: Ensure policies directory exists
+      file:
+        path: /etc/firefox/policies
+        state: directory
+        owner: root
+        group: root
+        mode: \'0755\'
+
+    - name: Configure Firefox to use system CA store
+      copy:
+        dest: /etc/firefox/policies/policies.json
+        owner: root
+        group: root
+        mode: \'0644\'
+        content: |
+          {
+            "policies": {
+              "Certificates": {
+                "ImportEnterpriseRoots": true
+              }
+            }
           }
-        }
-      }

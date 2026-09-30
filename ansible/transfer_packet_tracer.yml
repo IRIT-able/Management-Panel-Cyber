@@ -41,7 +41,7 @@
     - name: Copy Packet Tracer .deb to target
       ansible.builtin.copy:
         src: "{{ src_deb }}"
-        dest: "{{ dest_deb }s}"
+        dest: "{{ dest_deb }}"
         owner: root
         group: root
         mode: "0644"
@@ -66,7 +66,7 @@
         state: present
 
     - name: Install Packet Tracer .deb via dpkg (may leave deps unconfigured)
-      ansible.builtin.command: "dpkg -i {{ dest_deb }}"
+      ansible.builtin.shell: "echo packettracer packettracer/accept-eula select true | debconf-set-selections && DEBIAN_FRONTEND=noninteractive dpkg -i {{ dest_deb }}"
       register: dpkg_install_1
       changed_when: true
       failed_when: false
@@ -78,7 +78,7 @@
 
     # Optional: re-run dpkg in case PT wasn't fully configured the first time
     - name: Re-run dpkg to ensure Packet Tracer is configured
-      ansible.builtin.command: "dpkg -i {{ dest_deb }}"
+      ansible.builtin.shell: "echo packettracer packettracer/accept-eula select true | debconf-set-selections && DEBIAN_FRONTEND=noninteractive dpkg -i {{ dest_deb }}"
       register: dpkg_install_2
       changed_when: false
       failed_when: false

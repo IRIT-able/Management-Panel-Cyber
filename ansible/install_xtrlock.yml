@@ -1,0 +1,35 @@
+---
+- name: Distribute and install xtrlock offline
+  hosts: students
+  become: true
+  gather_facts: false
+
+  vars:
+    src_dir: "/home/admin/Admin-Panel/cyberlab-admin/ansible/transfer"
+
+  tasks:
+    - name: Find xtrlock deb on local server
+      delegate_to: localhost
+      ansible.builtin.find:
+        paths: "{{ src_dir }}"
+        patterns: "xtrlock*.deb"
+      register: xtrlock_debs
+      become: false
+
+    - name: Fail if deb not found
+      ansible.builtin.fail:
+        msg: "No xtrlock deb found in {{ src_dir }}"
+      when: xtrlock_debs.matched == 0
+
+    - name: Copy xtrlock deb to student PC
+      ansible.builtin.copy:
+        src: "{{ xtrlock_debs.files[0].path }}"
+        dest: "/tmp/xtrlock.deb"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install xtrlock via dpkg
+      ansible.builtin.command: dpkg -i /tmp/xtrlock.deb
+      register: dpkg_out
+      changed_when: true

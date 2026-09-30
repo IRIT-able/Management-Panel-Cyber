@@ -74,9 +74,6 @@ def login():
                 session['student_name'] = student.name
                 auth_logger.info('student.success ip=%s student_id=%s username=%s', ip, student.id, username)
                 flash(f'Welcome, {student.name}!', 'success')
-                vms = student.vms.all()
-                if len(vms) == 1:
-                    return redirect(url_for('student.console', vm_id=vms[0].id))
                 return redirect(url_for('student.dashboard'))
             # Failure path for student
             student.failed_login_attempts = (student.failed_login_attempts or 0) + 1

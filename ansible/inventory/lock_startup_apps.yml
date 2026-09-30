@@ -1,0 +1,60 @@
+---
+- name: Lock down startup applications and update Firefox
+  hosts: students
+  become: true
+  gather_facts: false
+  vars:
+    student_user: "student"
+
+  tasks:
+    - name: Ensure autostart directory exists
+      ansible.builtin.file:
+        path: "/home/{{ student_user }}/.config/autostart"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Disable access to the Startup Applications GUI tool
+      ansible.builtin.file:
+        path: /usr/bin/gnome-session-properties
+        mode: "0700"
+      ignore_errors: true
+      
+    - name: Update Firefox policy to hide bookmarks toolbar
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "DisplayBookmarksToolbar": "never",
+              "DisablePocket": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": "",
+              "ExtensionSettings": {
+                "newtaboverride@agenedia.com": {
+                  "installation_mode": "force_installed",
+                  "install_url": "file:///opt/newtab.xpi"
+                }
+              },
+              "3rdparty": {
+                "Extensions": {
+                  "newtaboverride@agenedia.com": {
+                    "type": "custom_url",
+                    "url": "https://cybersecurity.local/",
+                    "focus_website": true
+                  }
+                }
+              }
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"

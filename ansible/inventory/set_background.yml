@@ -1,0 +1,92 @@
+---
+- name: Set GNOME Desktop Background Globally (Live Update)
+  hosts: students
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Ensure backgrounds directory exists
+      ansible.builtin.file:
+        path: /usr/share/backgrounds
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy background image to PC
+      ansible.builtin.copy:
+        src: "/tmp/background.jpg"
+        dest: /usr/share/backgrounds/cyberlab-bg.jpg
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure dconf profile directory exists
+      ansible.builtin.file:
+        path: /etc/dconf/profile
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Ensure dconf local database directory exists
+      ansible.builtin.file:
+        path: /etc/dconf/db/local.d/locks
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create dconf user profile pointing to local db
+      ansible.builtin.copy:
+        dest: /etc/dconf/profile/user
+        content: |
+          user-db:user
+          system-db:local
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create dconf override for background
+      ansible.builtin.copy:
+        dest: /etc/dconf/db/local.d/00-background
+        content: |
+          [org/gnome/desktop/background]
+          picture-uri='file:///usr/share/backgrounds/cyberlab-bg.jpg'
+          picture-uri-dark='file:///usr/share/backgrounds/cyberlab-bg.jpg'
+          picture-options='zoom'
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Temporarily remove lock to allow live DBus injection
+      ansible.builtin.file:
+        path: /etc/dconf/db/local.d/locks/00-background
+        state: absent
+
+    - name: Update dconf database to register unlock
+      ansible.builtin.command: dconf update
+      changed_when: false
+
+    - name: Force live visual update via active user session
+      ansible.builtin.shell: |
+        su - student -c "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus gsettings set org.gnome.desktop.background picture-uri 'file:///usr/share/backgrounds/cyberlab-bg.jpg'" || true
+        su - student -c "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus gsettings set org.gnome.desktop.background picture-uri-dark 'file:///usr/share/backgrounds/cyberlab-bg.jpg'" || true
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Restore hardware lock on background settings
+      ansible.builtin.copy:
+        dest: /etc/dconf/db/local.d/locks/00-background
+        content: |
+          /org/gnome/desktop/background/picture-uri
+          /org/gnome/desktop/background/picture-uri-dark
+          /org/gnome/desktop/background/picture-options
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Update dconf database to apply final lock
+      ansible.builtin.command: dconf update
+      changed_when: false

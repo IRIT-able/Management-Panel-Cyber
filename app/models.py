@@ -26,6 +26,38 @@ class User(UserMixin, db.Model):
     def is_admin(self):
         return self.role == 'admin'
 
+class Submission(db.Model):
+    __tablename__ = "submissions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    student_id = db.Column(
+        db.Integer,
+        db.ForeignKey("students.id"),
+        nullable=False
+    )
+
+    vm_id = db.Column(
+        db.Integer,
+        db.ForeignKey("virtual_machines.id"),
+        nullable=True
+    )
+
+    assignment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("assignments.id"),
+        nullable=False
+    )
+
+    image_path = db.Column(db.String(255), nullable=False)
+
+    grade = db.Column(db.String(20), nullable=True)
+    feedback = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
 
 class Classroom(db.Model):
     """Classroom/Class model"""
@@ -38,9 +70,26 @@ class Classroom(db.Model):
     
     # Relationships
     students = db.relationship('Student', backref='classroom', lazy='dynamic', cascade='all, delete-orphan')
+    assignments = db.relationship('Assignment', backref='classroom', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Classroom {self.name}>'
+
+class Assignment(db.Model):
+    """Assignment model for screenshot submissions"""
+    __tablename__ = 'assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    classroom_id = db.Column(db.Integer, db.ForeignKey('classrooms.id'), nullable=False)
+    is_visible = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    submissions = db.relationship('Submission', backref='assignment', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<Assignment {self.name}>'
 
 
 class Student(db.Model):
@@ -59,9 +108,9 @@ class Student(db.Model):
     # Account lockout fields for students
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
     locked_until = db.Column(db.DateTime, nullable=True)
-    
-    # Relationships
+     # Relationships
     vms = db.relationship('VirtualMachine', backref='student', lazy='dynamic', cascade='all, delete-orphan')
+    submissions = db.relationship('Submission', backref='student', lazy='dynamic', cascade='all, delete-orphan')
     
     def set_password(self, password: str):
         """Set password hash"""

@@ -342,3 +342,76 @@ def register_websocket_routes(sock):
                 ws.close(message='Internal error')
             except:
                 pass
+
+
+
+    @sock.route('/pc-proxy/ws/<pc_name>')
+    def pc_vnc_proxy(ws, pc_name):
+        print(f"[{pc_name}] WS CONNECTION RECEIVED", flush=True)
+        import socket
+        import threading
+        
+        from app.blueprints.teacher.routes import parse_ansible_inventory
+        pcs = parse_ansible_inventory()
+        ip = None
+        for p in pcs:
+            if p['name'] == pc_name:
+                ip = p['ip']
+                break
+                
+        if not ip:
+            print(f"[{pc_name}] IP not found", flush=True)
+            ws.close()
+            return
+            
+        print(f"[{pc_name}] Connecting to VNC {ip}:5900...", flush=True)
+        
+        pc_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        pc_sock.settimeout(5.0)
+        try:
+            pc_sock.connect((ip, 5900))
+            pc_sock.settimeout(None)
+            print(f"[{pc_name}] TCP Connected to VNC {ip}:5900", flush=True)
+        except Exception as e:
+            print(f"[{pc_name}] Failed to connect to VNC: {e}", flush=True)
+            ws.close()
+            return
+            
+        def client_to_pc():
+            print(f"[{pc_name}] Client->PC thread started", flush=True)
+            try:
+                while True:
+                    data = ws.receive()
+                    if data is None:
+                        print(f"[{pc_name}] Client disconnected (receive None)", flush=True)
+                        break
+                    print(f"[{pc_name}] C->P: {len(data)} bytes: {data[:20]}", flush=True)
+                    if isinstance(data, str):
+                        data = data.encode('utf-8')
+                    pc_sock.sendall(data)
+            except Exception as e:
+                print(f"[{pc_name}] C->P error: {e}", flush=True)
+            finally:
+                print(f"[{pc_name}] C->P thread ending", flush=True)
+                pc_sock.close()
+                
+        thread = threading.Thread(target=client_to_pc, daemon=True)
+        thread.start()
+        
+        print(f"[{pc_name}] Waiting for PC->Client data...", flush=True)
+        try:
+            while True:
+                data = pc_sock.recv(4096)
+                if not data:
+                    print(f"[{pc_name}] PC disconnected (recv empty)", flush=True)
+                    break
+                print(f"[{pc_name}] P->C: {len(data)} bytes: {data[:20]}", flush=True)
+                ws.send(data)
+        except Exception as e:
+            print(f"[{pc_name}] P->C error: {e}", flush=True)
+        finally:
+            print(f"[{pc_name}] P->C loop ending", flush=True)
+            pc_sock.close()
+
+
+

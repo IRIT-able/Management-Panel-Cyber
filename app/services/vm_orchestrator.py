@@ -234,7 +234,7 @@ def get_vm_status(node: str, vmid: int) -> dict:
         status = prox.get_vm_status(node, vmid)
         return status
     except Exception as e:
-        raise RuntimeError(f"Failed to get VM status: {str(e)}")
+        return {'status': 'deleted', 'error': str(e)}
 
 
 def stop_vm_for_student(student_id: int) -> VirtualMachine:
@@ -296,7 +296,9 @@ def delete_vm_for_student(vm_id: int):
         # Delete from Proxmox
         prox.delete_vm(vm.proxmox_node, vm.proxmox_vmid)
     except Exception as e:
-        raise RuntimeError(f"Failed to delete VM from Proxmox: {str(e)}")
+        from flask import current_app
+        if current_app:
+            current_app.logger.warning(f"Failed to delete VM {vm_id} from Proxmox: {str(e)}")
     
     # Delete from database
     try:

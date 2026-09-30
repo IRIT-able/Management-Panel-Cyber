@@ -1,0 +1,73 @@
+---
+- name: Fix Firefox Policies New Tab XPI Path for Snap
+  hosts: students
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Deploy strict policies.json with HTTPS install_url
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Certificates": {
+                "ImportEnterpriseRoots": true,
+                "Install": [
+                  "/etc/firefox/policies/certs/caddy-2025-ecc-root.crt",
+                  "/etc/firefox/policies/certs/caddy-ecc-intermediate.crt"
+                ]
+              },
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "DisplayBookmarksToolbar": "never",
+              "DisableCustomizingToolbar": true,
+              "BlockAboutPreferences": true,
+              "BlockAboutAddons": true,
+              "BlockAboutConfig": true,
+              "BlockAboutProfiles": true,
+              "BlockAboutSupport": true,
+              "DisableDeveloperTools": true,
+              "DisableFirefoxAccounts": true,
+              "DisablePocket": true,
+              "DisablePrivateBrowsing": true,
+              "DisableSetDesktopBackground": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "DontCheckDefaultBrowser": true,
+              "OfferToSaveLogins": false,
+              "PasswordManagerEnabled": false,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": "",
+              "ExtensionSettings": {
+                "newtaboverride@agenedia.com": {
+                  "installation_mode": "force_installed",
+                  "install_url": "https://cybersecurity.local/static/newtab.xpi",
+                  "default_area": "menupanel"
+                },
+                "*": {
+                  "installation_mode": "blocked"
+                }
+              },
+              "3rdparty": {
+                "Extensions": {
+                  "newtaboverride@agenedia.com": {
+                    "type": "custom_url",
+                    "url": "https://cybersecurity.local/",
+                    "focus_website": true
+                  }
+                }
+              },
+              "Preferences": {
+                "toolkit.legacyUserProfileCustomizations.stylesheets": {
+                  "Value": true,
+                  "Status": "locked"
+                }
+              }
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"

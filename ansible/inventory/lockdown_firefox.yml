@@ -1,0 +1,145 @@
+---
+- name: Ultimate Firefox Lockdown (Double Cert Fix)
+  hosts: students
+  become: true
+  gather_facts: false
+  vars:
+    student_user: "student"
+    deb_profile_dir: "/home/{{ student_user }}/.mozilla/firefox"
+    snap_profile_dir: "/home/{{ student_user }}/snap/firefox/common/.mozilla/firefox"
+
+  tasks:
+    - name: Push the signed XPI extension file to safe Snap directory
+      ansible.builtin.copy:
+        src: /tmp/newtab.xpi
+        dest: /etc/firefox/policies/newtab.xpi
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy strict policies.json
+      ansible.builtin.copy:
+        dest: /etc/firefox/policies/policies.json
+        content: |
+          {
+            "policies": {
+              "Certificates": {
+                "ImportEnterpriseRoots": true,
+                "Install": [
+                  "/etc/firefox/policies/certs/caddy-2025-ecc-root.crt",
+                  "/etc/firefox/policies/certs/caddy-ecc-intermediate.crt"
+                ]
+              },
+              "Homepage": {
+                "URL": "https://cybersecurity.local/",
+                "Locked": true,
+                "StartPage": "homepage"
+              },
+              "DisplayBookmarksToolbar": "never",
+              "DisableCustomizingToolbar": true,
+              "BlockAboutPreferences": true,
+              "BlockAboutAddons": true,
+              "BlockAboutConfig": true,
+              "BlockAboutProfiles": true,
+              "BlockAboutSupport": true,
+              "DisableDeveloperTools": true,
+              "DisableFirefoxAccounts": true,
+              "DisablePocket": true,
+              "DisablePrivateBrowsing": true,
+              "DisableSetDesktopBackground": true,
+              "DisableTelemetry": true,
+              "DisableFirefoxStudies": true,
+              "DontCheckDefaultBrowser": true,
+              "OfferToSaveLogins": false,
+              "PasswordManagerEnabled": false,
+              "OverrideFirstRunPage": "",
+              "OverridePostUpdatePage": "",
+              "ExtensionSettings": {
+                "newtaboverride@agenedia.com": {
+                  "installation_mode": "force_installed",
+                  "install_url": "file:///etc/firefox/policies/newtab.xpi",
+                  "default_area": "menupanel"
+                },
+                "*": {
+                  "installation_mode": "blocked"
+                }
+              },
+              "3rdparty": {
+                "Extensions": {
+                  "newtaboverride@agenedia.com": {
+                    "type": "custom_url",
+                    "url": "https://cybersecurity.local/",
+                    "focus_website": true
+                  }
+                }
+              },
+              "Preferences": {
+                "toolkit.legacyUserProfileCustomizations.stylesheets": {
+                  "Value": true,
+                  "Status": "locked"
+                }
+              }
+            }
+          }
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Pre-seed Firefox profile directories (Deb and Snap)
+      ansible.builtin.file:
+        path: "{{ item }}/cyberlab.default/chrome"
+        state: directory
+        owner: "{{ student_user }}"
+        group: "{{ student_user }}"
+        mode: "0755"
+      loop:
+        - "{{ deb_profile_dir }}"
+        - "{{ snap_profile_dir }}"
+
+    - name: Write profiles.ini to force Firefox to use our pre-seeded profile
+      ansible.builtin.copy:
+        dest: "{{ item }}/profiles.ini"
+        content: |
+          [Profile0]
+          Name=default
+          IsRelative=1
+          Path=cyberlab.default
+          Default=1
+
+          [General]
+          StartWithLastProfile=1
+          Version=2
+        owner: "{{ student_user }}"
+        group: "{{ student_user }}"
+        mode: "0644"
+      loop:
+        - "{{ deb_profile_dir }}"
+        - "{{ snap_profile_dir }}"
+
+    - name: Inject userChrome.css to hide Extensions UI
+      ansible.builtin.copy:
+        dest: "{{ item }}/cyberlab.default/chrome/userChrome.css"
+        content: |
+          /* Hide the Extensions puzzle piece button */
+          #unified-extensions-button {
+            display: none !important;
+          }
+          /* Hide the old overflow menu button */
+          #nav-bar-overflow-button {
+            display: none !important;
+          }
+        owner: "{{ student_user }}"
+        group: "{{ student_user }}"
+        mode: "0644"
+      loop:
+        - "{{ deb_profile_dir }}"
+        - "{{ snap_profile_dir }}"
+
+    - name: Kill Firefox to apply policies immediately
+      ansible.builtin.shell: |
+        pkill -x firefox || true
+        pkill -x firefox-bin || true
+      args:
+        executable: /bin/bash
+      changed_when: false
+      failed_when: false

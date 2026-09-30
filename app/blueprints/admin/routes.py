@@ -58,6 +58,31 @@ def dashboard():
                          nodes=node_stats,
                          stats=stats)
 
+@bp.route('/teacher/<int:teacher_id>/reset_password', methods=['POST'])
+@login_required
+@admin_required
+def reset_teacher_password(teacher_id):
+    """Reset a teacher's password"""
+    teacher = User.query.get_or_404(teacher_id)
+    
+    if teacher.role != 'teacher':
+        flash('Can only reset passwords for teachers', 'danger')
+        return redirect(url_for('admin.dashboard'))
+        
+    new_password = request.form.get('new_password')
+    if not new_password or len(new_password) < 6:
+        flash('Password must be at least 6 characters', 'danger')
+        return redirect(url_for('admin.dashboard'))
+        
+    teacher.password_hash = hash_password(new_password)
+    # Unlock account if it was locked
+    teacher.failed_login_attempts = 0
+    teacher.locked_until = None
+    
+    db.session.commit()
+    flash(f'Password reset successfully for {teacher.email}', 'success')
+    return redirect(url_for('admin.dashboard'))
+
 
 @bp.route('/logs', methods=['GET'])
 @login_required

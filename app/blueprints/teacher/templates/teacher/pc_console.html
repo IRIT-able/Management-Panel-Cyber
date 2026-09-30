@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ pc_name }} Console{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<style nonce="{{ csp_nonce() }}">
+    #noVNC_screen {
+        width: 100%;
+        height: calc(100vh - 200px);
+        min-height: 500px;
+        background-color: #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        border-radius: 4px;
+    }
+    #noVNC_screen canvas {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    #vnc-status {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        background: rgba(0,0,0,0.7);
+        padding: 10px 20px;
+        border-radius: 4px;
+        z-index: 10;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col d-flex justify-content-between align-items-center">
+            <h2><i class="bi bi-display"></i> {{ pc_name }} Console ({{ ip }})</h2>
+            <div class="d-flex gap-2">
+                <button class="btn btn-secondary" id="btn-cad"><i class="bi bi-keyboard"></i> Ctrl+Alt+Del</button>
+                <a href="{{ url_for('teacher.pc_status') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Status
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div id="noVNC_screen">
+                <div id="vnc-status">Connecting to PC...</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('vnc-status').textContent = 'DOM Loaded, waiting for module...';
+    });
+</script>
+
+<script type="module" nonce="{{ csp_nonce() }}">
+    import RFB from '/static/vendor/novnc/core/rfb.js';
+    import { initLogging } from '/static/vendor/novnc/core/util/logging.js';
+    initLogging('debug');
+
+    let rfb;
+    let desktopName;
+
+    function getWebsocketUrl() {
+        let protocol = (window.location.protocol === "https:") ? "wss:" : "ws:";
+        return `${protocol}//${window.location.host}/pc-proxy/ws/{{ pc_name }}`;
+    }
+
+    function connectedToServer(e) {
+        document.getElementById('vnc-status').style.display = 'none';
+        desktopName = e.detail.name;
+    }
+
+    function disconnectedFromServer(e) {
+        let status = document.getElementById('vnc-status');
+        status.style.display = 'block';
+        if (e.detail.clean) {
+            status.textContent = 'Disconnected';
+        } else {
+            status.textContent = 'Connection error / Timeout';
+            status.style.background = 'rgba(220, 53, 69, 0.8)';
+        }
+    }
+
+    async function connect() {
+        document.getElementById('vnc-status').textContent = 'Initializing VNC client...';
+        await new Promise(r => setTimeout(r, 500));
+        
+        try {
+            const url = getWebsocketUrl();
+            document.getElementById('vnc-status').textContent = 'Connecting to ' + url + '...';
+            
+            rfb = new RFB(document.getElementById('noVNC_screen'), url, {
+                credentials: { password: '' },
+                shared: true,
+                wsProtocols: ['binary'],
+                
+            });
+
+            rfb.addEventListener("connect",  connectedToServer);
+            rfb.addEventListener("disconnect", disconnectedFromServer);
+            
+            rfb.scaleViewport = true;
+            rfb.resizeSession = false;
+
+            document.getElementById('btn-cad').addEventListener('click', function() {
+                if (rfb) { rfb.sendCtrlAltDel(); }
+            });
+            
+        } catch (e) {
+            document.getElementById('vnc-status').textContent = 'Error starting VNC client: ' + e;
+        }
+    }
+
+    connect();
+</script>
+{% endblock %}

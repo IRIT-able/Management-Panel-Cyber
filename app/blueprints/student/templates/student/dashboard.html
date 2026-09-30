@@ -52,11 +52,94 @@
             </div>
         </div>
         {% endfor %}
+
     </div>
+    
     {% else %}
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i> No VMs have been assigned to you yet. Please contact your teacher.
     </div>
     {% endif %}
+
+    <!-- Assignments Section -->
+    <div class="row mt-4 mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-journal-check"></i> My Assignments</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if assignments %}
+                    <ul class="list-group list-group-flush">
+                        {% for assignment in assignments %}
+                        <li class="list-group-item p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ assignment.name }}</h6>
+                                    <small class="text-muted">Upload a screenshot from Packet Tracer or your VM.</small>
+                                </div>
+                                <div>
+                                    <input type="file" id="upload-{{ assignment.id }}" style="display: none;" accept="image/png, image/jpeg" onchange="uploadScreenshot(this, {{ assignment.id }})">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="document.getElementById('upload-{{ assignment.id }}').click()">
+                                        <i class="bi bi-upload"></i> Upload Screenshot
+                                    </button>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-check-circle display-4"></i>
+                        <p class="mt-2 mb-0">No active assignments at this time.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script nonce="{{ csp_nonce() }}">
+    function uploadScreenshot(inputElement, assignmentId) {
+        if (!inputElement.files || inputElement.files.length === 0) return;
+        
+        const file = inputElement.files[0];
+        const formData = new FormData();
+        formData.append('assignment_id', assignmentId);
+        formData.append('image', file);
+        
+        // Disable button and show loading
+        const btn = inputElement.nextElementSibling;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+        btn.disabled = true;
+        
+        fetch('{{ url_for("student.submit_screenshot") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Screenshot submitted successfully!');
+                inputElement.value = ''; // clear input
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while submitting.');
+        })
+        .finally(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        });
+    }
+</script>
+{% endblock %}
+
