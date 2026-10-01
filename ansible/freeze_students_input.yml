@@ -6,8 +6,8 @@
 
   vars:
     student_user: "student"
-    state_dir: "/var/lib/cyberlab"
-    marker_file: "/var/lib/cyberlab/input_frozen"
+    state_dir: "/run/cyberlab"
+    marker_file: "/run/cyberlab/input_frozen"
 
   tasks:
     - name: Ensure cyberlab state dir exists
