@@ -120,34 +120,60 @@ class ProxmoxClient:
         result = self._ssh_command(f"pvesh get /nodes/{node}/qemu/{vmid}/config --output-format=json")
         return json.loads(result)
 
+
+    def _api_request(self, method: str, path: str, data: dict = None) -> dict:
+        url = f"{self.host}/api2/json{path}"
+        headers = {}
+        if self.token_name and self.token_value:
+            headers["Authorization"] = f"PVEAPIToken={self.user}!{self.token_name}={self.token_value}"
+        else:
+            auth_cookie = self.get_auth_cookie()
+            csrf_token = self.get_csrf_token()
+            headers['Cookie'] = f'PVEAuthCookie={auth_cookie}'
+            headers['CSRFPreventionToken'] = csrf_token
+
+        import requests
+        if method.upper() == 'GET':
+            response = requests.get(url, headers=headers, params=data, verify=False, timeout=10)
+        elif method.upper() == 'POST':
+            response = requests.post(url, headers=headers, data=data, verify=False, timeout=10)
+        elif method.upper() == 'PUT':
+            response = requests.put(url, headers=headers, data=data, verify=False, timeout=10)
+        elif method.upper() == 'DELETE':
+            response = requests.delete(url, headers=headers, data=data, verify=False, timeout=30)
+        else:
+            raise ValueError(f"Unsupported method {method}")
+            
+        response.raise_for_status()
+        return response.json().get("data", {})
+
     def get_vm_status(self, node: str, vmid: int) -> Dict:
         """Get VM status"""
-        result = self._ssh_command(f"pvesh get /nodes/{node}/qemu/{vmid}/status/current --output-format=json")
-        return json.loads(result)
+        return self._api_request("GET", f"/nodes/{node}/qemu/{vmid}/status/current")
 
     def start_vm(self, node: str, vmid: int):
         """Start a VM"""
-        self._ssh_command(f"pvesh create /nodes/{node}/qemu/{vmid}/status/start")
+        self._api_request("POST", f"/nodes/{node}/qemu/{vmid}/status/start")
 
     def stop_vm(self, node: str, vmid: int):
         """Stop a VM"""
-        self._ssh_command(f"pvesh create /nodes/{node}/qemu/{vmid}/status/stop")
+        self._api_request("POST", f"/nodes/{node}/qemu/{vmid}/status/stop")
 
     def reset_vm(self, node: str, vmid: int):
         """Reset a VM"""
-        self._ssh_command(f"pvesh create /nodes/{node}/qemu/{vmid}/status/reset")
+        self._api_request("POST", f"/nodes/{node}/qemu/{vmid}/status/reset")
 
     def suspend_vm(self, node: str, vmid: int):
         """Suspend a VM"""
-        self._ssh_command(f"pvesh create /nodes/{node}/qemu/{vmid}/status/suspend")
+        self._api_request("POST", f"/nodes/{node}/qemu/{vmid}/status/suspend")
 
     def resume_vm(self, node: str, vmid: int):
         """Resume a VM"""
-        self._ssh_command(f"pvesh create /nodes/{node}/qemu/{vmid}/status/resume")
+        self._api_request("POST", f"/nodes/{node}/qemu/{vmid}/status/resume")
 
     def delete_vm(self, node: str, vmid: int):
         """Delete a VM"""
-        self._ssh_command(f"pvesh delete /nodes/{node}/qemu/{vmid}")
+        self._api_request("DELETE", f"/nodes/{node}/qemu/{vmid}")
 
     def clone_vm(self, node: str, template_id: int, new_vmid: int, name: str,
                  storage: str = None, linked: bool = True) -> str:
