@@ -1,2 +1,15 @@
 3-6-2026.zip
 ansible/transfer/*.deb
+.env
+.venv/
+__pycache__/
+*.pyc
+instance/
+id_rsa
+id_rsa.pub
+deploy/certs/*.key
+deploy/certs/*.crt
+deploy/caddy/*.crt
+deploy/caddy/*.key
+backup/id_rsa
+backup/id_rsa.pub
