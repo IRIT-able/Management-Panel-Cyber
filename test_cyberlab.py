@@ -5,8 +5,8 @@ import logging
 import traceback
 from app import create_app, db
 from app.models import User, Student, VirtualMachine, Classroom
-from app.services.proxmox_client import ProxmoxClient, get_proxmox_client
-from app.services.vm_orchestrator import get_vm_status
+from app.services.proxmox_client import ProxmoxClient
+from app.services.vm_orchestrator import get_vm_status, get_proxmox_client
 import requests
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

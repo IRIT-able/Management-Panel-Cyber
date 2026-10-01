@@ -216,10 +216,6 @@ class ProxmoxClient:
         if cfg.get("cpu") == "qemu64" or "cpu" not in cfg:
             changes["cpu"] = "kvm64"
         
-        # Disable memory ballooning for consistent performance
-        if "balloon" not in cfg:
-            changes["balloon"] = 0
-        
         # Apply changes if any
         if changes:
             url = f"{self.host}/api2/json/nodes/{node}/qemu/{vmid}/config"
