@@ -9,7 +9,7 @@ bind = "unix:/run/cyberlab-admin/gunicorn.sock"
 backlog = 2048
 
 # Worker processes
-workers = 16
+workers = 24
 threads = 20
 worker_class = 'gthread'
 worker_connections = 1000
