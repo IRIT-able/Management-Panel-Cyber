@@ -299,10 +299,15 @@ def register_websocket_routes(sock):
                             if not data:
                                 print(f"[VNC-PROXY] Proxmox closed connection (recv returned empty)", flush=True)
                                 break
+                        except websocket.WebSocketTimeoutException:
+                            # Idle for 30s, just continue waiting
+                            continue
                         except websocket.WebSocketConnectionClosedException:
                             print(f"[VNC-PROXY] Proxmox WebSocket connection closed", flush=True)
                             break
                         except Exception as recv_err:
+                            if "timed out" in str(recv_err).lower():
+                                continue
                             print(f"[VNC-PROXY] Error receiving from Proxmox: {type(recv_err).__name__}: {recv_err}", flush=True)
                             break
                         
