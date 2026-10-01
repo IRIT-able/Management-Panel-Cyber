@@ -234,7 +234,11 @@ def get_vm_status(node: str, vmid: int) -> dict:
         status = prox.get_vm_status(node, vmid)
         return status
     except Exception as e:
-        return {'status': 'deleted', 'error': str(e)}
+        error_msg = str(e).lower()
+        if "does not exist" in error_msg or "not found" in error_msg or "no such file" in error_msg:
+            return {'status': 'deleted', 'error': str(e)}
+        else:
+            return {'status': 'unknown', 'error': str(e)}
 
 
 def stop_vm_for_student(student_id: int) -> VirtualMachine:
