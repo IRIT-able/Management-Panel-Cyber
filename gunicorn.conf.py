@@ -16,7 +16,7 @@ worker_connections = 1000
 max_requests = 0
 max_requests_jitter = 50
 preload_app = False
-timeout = 30
+timeout = 86400
 keepalive = 2
 
 # Restart workers after this many requests, with up to 50% jitter
