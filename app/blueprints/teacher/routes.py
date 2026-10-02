@@ -1330,9 +1330,13 @@ def push_file_to_students(class_id):
         playbook_path = os.path.join(ansible_dir, "push_file_to_students.yml")
         
         try:
+            env = os.environ.copy()
+            env.setdefault("HOME", "/home/admin")
             extra_vars = f'{{"src_file": "{file_path}", "dest_filename": "{filename}"}}'
             result = subprocess.run(
-                ["ansible-playbook", "-i", inventory_path, playbook_path, "-e", extra_vars],
+                ["/usr/bin/ansible-playbook", "-i", inventory_path, playbook_path, "-e", extra_vars],
+                cwd=ansible_dir,
+                env=env,
                 capture_output=True,
                 text=True,
                 timeout=60

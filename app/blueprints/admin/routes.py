@@ -96,42 +96,31 @@ def logs_page():
 @login_required
 @admin_required
 def download_logs():
-    """Download the last 10,000 lines of the auth.log file if present"""
-    from flask import current_app
-    logs_dir = os.path.join(current_app.instance_path, 'logs')
-    log_path = os.path.join(logs_dir, 'auth.log')
-    if not os.path.exists(log_path):
-        abort(404)
-    # Tail last 10,000 lines without loading entire file into memory unnecessarily
+    """Download the last 10,000 lines of the application system logs (journalctl)"""
+    import subprocess
+    from flask import Response
+    
     try:
-        max_lines = 10000
-        with open(log_path, 'rb') as f:
-            f.seek(0, os.SEEK_END)
-            size = f.tell()
-            block = 4096
-            data = bytearray()
-            lines = 0
-            while size > 0 and lines <= max_lines:
-                read_size = block if size >= block else size
-                size -= read_size
-                f.seek(size)
-                chunk = f.read(read_size)
-                data[:0] = chunk
-                lines = data.count(b'\n')
-            # Keep only last max_lines
-            if lines > max_lines:
-                # find the position of the (lines-max_lines)th newline from start
-                to_trim = lines - max_lines
-                idx = 0
-                for _ in range(to_trim):
-                    idx = data.find(b'\n', idx) + 1
-                data = data[idx:]
-        return Response(bytes(data), mimetype='text/plain', headers={
-            'Content-Disposition': 'attachment; filename="auth.log"'
-        })
-    except Exception:
-        # Fallback to send_file if tailing fails
-        return send_file(log_path, as_attachment=True, download_name='auth.log', mimetype='text/plain')
+        # Fetch the last 10,000 lines of the systemd journal for the app service
+        result = subprocess.run(
+            ["journalctl", "-u", "cyberlab-admin", "-n", "10000", "--no-pager"],
+            capture_output=True,
+            text=False
+        )
+        
+        if result.returncode != 0 or not result.stdout:
+            data = b"No logs available or permission denied reading journalctl."
+        else:
+            data = result.stdout
+            
+    except Exception as e:
+        data = f"Error fetching logs: {e}".encode('utf-8')
+        
+    return Response(
+        data,
+        mimetype="text/plain",
+        headers={"Content-disposition": "attachment; filename=cyberlab-system.log"}
+    )
 
 
 @bp.route('/teachers/create', methods=['GET', 'POST'])
