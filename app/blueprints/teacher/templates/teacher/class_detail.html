@@ -47,6 +47,17 @@
                                 <i class="bi bi-router"></i> Open Packet Tracer
                             </button>
                         </form>
+                    </div>
+                    <hr>
+                    <p class="text-muted small mb-2">Push an assignment file to all physical student desktops (e.g. .pkt files)</p>
+                    <form method="POST" action="{{ url_for('teacher.push_file_to_students', class_id=classroom.id) }}" enctype="multipart/form-data" class="d-flex gap-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                        <input type="file" name="assignment_file" class="form-control form-control-sm" required>
+                        <button type="submit" class="btn btn-primary btn-sm text-nowrap" onclick="return confirm('Push this file to all student computers?')">
+                            <i class="bi bi-upload"></i> Push File
+                        </button>
+                    </form>
+                    <div class="d-flex flex-wrap gap-2 mt-3">
                         <form method="POST" action="{{ url_for('teacher.close_all_windows', class_id=classroom.id) }}" class="m-0">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                             <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Close all windows on all student machines?')">

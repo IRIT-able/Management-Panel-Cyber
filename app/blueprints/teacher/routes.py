@@ -1292,3 +1292,65 @@ def delete_assignment(assignment_id):
     db.session.commit()
     flash('Assignment deleted successfully.', 'success')
     return redirect(url_for('teacher.class_detail', class_id=classroom.id))
+
+@bp.route('/class/<int:class_id>/push_file', methods=['POST'])
+@login_required
+@teacher_required
+def push_file_to_students(class_id):
+    """Upload a file and push it to all student PCs via Ansible"""
+    from werkzeug.utils import secure_filename
+    import subprocess
+    import shutil
+    
+    classroom = Classroom.query.get_or_404(class_id)
+    if not current_user.is_admin() and classroom.teacher_id != current_user.id:
+        flash('Access denied', 'danger')
+        return redirect(url_for('teacher.dashboard'))
+        
+    if 'assignment_file' not in request.files:
+        flash('No file part', 'danger')
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
+        
+    file = request.files['assignment_file']
+    if file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
+        
+    if file:
+        filename = secure_filename(file.filename)
+        # Save temporarily
+        temp_dir = os.path.join(current_app.root_path, 'uploads', 'temp_push')
+        os.makedirs(temp_dir, exist_ok=True)
+        file_path = os.path.join(temp_dir, filename)
+        file.save(file_path)
+        
+        # Run ansible playbook
+        ansible_dir = os.path.join(os.path.dirname(os.path.dirname(current_app.root_path)), "ansible")
+        inventory_path = os.path.join(ansible_dir, "inventory", "hosts.yml")
+        playbook_path = os.path.join(ansible_dir, "push_file_to_students.yml")
+        
+        try:
+            extra_vars = f'{{"src_file": "{file_path}", "dest_filename": "{filename}"}}'
+            result = subprocess.run(
+                ["ansible-playbook", "-i", inventory_path, playbook_path, "-e", extra_vars],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                flash(f'Successfully pushed {filename} to all student computers!', 'success')
+            else:
+                current_app.logger.error(f"Failed to push file: {result.stderr}")
+                flash(f'Failed to push file. Some computers may be offline.', 'warning')
+                
+        except Exception as e:
+            current_app.logger.error(f"Error pushing file: {e}")
+            flash('An error occurred while pushing the file.', 'danger')
+            
+        finally:
+            # Clean up temp file
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                
+        return redirect(url_for('teacher.class_detail', class_id=class_id))
