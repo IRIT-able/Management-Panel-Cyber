@@ -1325,8 +1325,8 @@ def push_file_to_students(class_id):
         file.save(file_path)
         
         # Run ansible playbook
-        ansible_dir = os.path.join(os.path.dirname(os.path.dirname(current_app.root_path)), "ansible")
-        inventory_path = os.path.join(ansible_dir, "inventory", "hosts.yml")
+        ansible_dir = "/home/admin/Admin-Panel/cyberlab-admin/ansible"
+        inventory_path = os.path.join(ansible_dir, "inventory", "hosts")
         playbook_path = os.path.join(ansible_dir, "push_file_to_students.yml")
         
         try:
