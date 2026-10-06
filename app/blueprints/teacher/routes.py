@@ -1345,7 +1345,7 @@ def push_file_to_students(class_id):
             if result.returncode == 0:
                 flash(f'Successfully pushed {filename} to all student computers!', 'success')
             else:
-                current_app.logger.error(f"Failed to push file: {result.stderr}")
+                current_app.logger.error(f"Failed to push file (RC {result.returncode}). STDOUT: {result.stdout}\nSTDERR: {result.stderr}")
                 flash(f'Failed to push file. Some computers may be offline.', 'warning')
                 
         except Exception as e:

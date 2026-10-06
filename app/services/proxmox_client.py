@@ -109,6 +109,10 @@ class ProxmoxClient:
         result = self._ssh_command("pvesh get /nodes --output-format=json")
         nodes = json.loads(result)
         return [n["node"] for n in nodes]
+        
+    def get_node_storages(self, node: str) -> List[Dict]:
+        """Get available storage resources on a node"""
+        return self._api_request("GET", f"/nodes/{node}/storage")
 
     def get_next_vmid(self) -> int:
         """Get next available VMID"""
